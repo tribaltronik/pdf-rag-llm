@@ -58,7 +58,12 @@ format:
 
 # Health check
 health:
-	curl -s http://localhost:8000/health | python -m json.tool
+	curl -s http://localhost:8000/health
+
+# Open web UI
+ui:
+	@echo "Opening web UI at http://localhost:8000"
+	@open http://localhost:8000 2>/dev/null || echo "Manually open http://localhost:8000 in your browser"
 
 # Quick test query
 test-query:

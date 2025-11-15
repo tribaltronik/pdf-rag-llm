@@ -1,4 +1,6 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import os
 import httpx
@@ -73,6 +75,12 @@ async def load_initial_document():
 @app.on_event("startup")
 async def startup_event():
     await load_initial_document()
+
+
+@app.get("/")
+async def read_root():
+    """Serve the web UI"""
+    return FileResponse("static/index.html")
 
 
 class QueryRequest(BaseModel):

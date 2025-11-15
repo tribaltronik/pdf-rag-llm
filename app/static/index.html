@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF RAG Q&A</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .upload-section {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-section:hover {
+            border-color: #4f46e5;
+            background: #f1f5f9;
+        }
+        
+        .upload-section.dragover {
+            border-color: #4f46e5;
+            background: #ede9fe;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+        
+        .upload-btn:hover {
+            background: #4338ca;
+        }
+        
+        .query-section {
+            margin-bottom: 30px;
+        }
+        
+        .query-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .query-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+        
+        .query-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+            transition: background 0.3s ease;
+        }
+        
+        .query-btn:hover {
+            background: #059669;
+        }
+        
+        .query-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .response-section {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .response-section.show {
+            display: block;
+        }
+        
+        .response-header {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10px;
+        }
+        
+        .response-text {
+            line-height: 1.6;
+            color: #4b5563;
+            white-space: pre-wrap;
+        }
+        
+        .status {
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .status.show {
+            display: block;
+        }
+        
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .docs-info {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #fcd34d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 PDF RAG Q&A</h1>
+            <p>Upload PDF documents and ask questions about their content</p>
+        </div>
+        
+        <div class="content">
+            <div class="docs-info">
+                <strong>💡 Tip:</strong> A sample document is already loaded. Try asking "What are the main points?"
+            </div>
+            
+            <div class="upload-section" id="uploadSection">
+                <div>
+                    <p style="margin-bottom: 15px; color: #64748b;">
+                        📁 Drag & drop a PDF file here or click to browse
+                    </p>
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf,.txt,.md">
+                    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                        Choose File
+                    </button>
+                </div>
+            </div>
+            
+            <div class="status" id="uploadStatus"></div>
+            
+            <div class="query-section">
+                <h3 style="margin-bottom: 15px; color: #374151;">Ask a Question</h3>
+                <textarea 
+                    id="queryInput" 
+                    class="query-input" 
+                    placeholder="What would you like to know about the uploaded documents?"
+                ></textarea>
+                <button id="queryBtn" class="query-btn" onclick="askQuestion()">
+                    Ask Question
+                </button>
+            </div>
+            
+            <div class="status" id="queryStatus"></div>
+            
+            <div class="response-section" id="responseSection">
+                <div class="response-header">Answer:</div>
+                <div class="response-text" id="responseText"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        // File upload handling
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInput = document.getElementById('fileInput');
+        const uploadStatus = document.getElementById('uploadStatus');
+        
+        // Drag and drop
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadFile(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                uploadFile(e.target.files[0]);
+            }
+        });
+        
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('chunk_size', 500);
+            formData.append('overlap', 100);
+            
+            showStatus('uploadStatus', 'info', `Uploading ${file.name}...`);
+            
+            try {
+                const response = await fetch(`${API_BASE}/ingest`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showStatus('uploadStatus', 'success', 
+                        `✅ Successfully uploaded ${file.name} (${result.chunks} chunks processed)`);
+                } else {
+                    showStatus('uploadStatus', 'error', 
+                        `❌ Upload failed: ${result.detail || 'Unknown error'}`);
+                }
+            } catch (error) {
+                showStatus('uploadStatus', 'error', 
+                    `❌ Upload failed: ${error.message}`);
+            }
+        }
+        
+        // Query handling
+        async function askQuestion() {
+            const queryInput = document.getElementById('queryInput');
+            const queryBtn = document.getElementById('queryBtn');
+            const query = queryInput.value.trim();
+            
+            if (!query) {
+                showStatus('queryStatus', 'error', 'Please enter a question');
+                return;
+            }
+            
+            queryBtn.disabled = true;
+            queryBtn.innerHTML = '<span class="loading"></span>Thinking...';
+            showStatus('queryStatus', 'info', 'Processing your question...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question: query,
+                        top_k: 3,
+                        temperature: 0.3
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResponse(result.answer);
+                    showStatus('queryStatus', 'success', 
+                        `✅ Answer generated using ${result.context_chunks} document chunks`);
+                } else {
+                    showStatus('queryStatus', 'error', 
+                        `❌ Query failed: ${result.detail || 'Unknown error'}`);
+                }
+            } catch (error) {
+                showStatus('queryStatus', 'error', 
+                    `❌ Query failed: ${error.message}`);
+            } finally {
+                queryBtn.disabled = false;
+                queryBtn.innerHTML = 'Ask Question';
+            }
+        }
+        
+        function showResponse(answer) {
+            const responseSection = document.getElementById('responseSection');
+            const responseText = document.getElementById('responseText');
+            
+            responseText.textContent = answer;
+            responseSection.classList.add('show');
+        }
+        
+        function showStatus(elementId, type, message) {
+            const statusElement = document.getElementById(elementId);
+            statusElement.className = `status ${type} show`;
+            statusElement.textContent = message;
+            
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusElement.classList.remove('show');
+                }, 5000);
+            }
+        }
+        
+        // Allow Enter key to submit query (with Shift+Enter for new line)
+        document.getElementById('queryInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                askQuestion();
+            }
+        });
+        
+        // Check API health on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    const health = await response.json();
+                    console.log('API Health:', health);
+                }
+            } catch (error) {
+                showStatus('uploadStatus', 'error', 
+                    '❌ Cannot connect to API. Make sure the server is running on localhost:8000');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -9,6 +9,7 @@ services:
       - OLLAMA_URL=http://ollama:11434
     volumes:
       - ./data:/app/data
+      - ./app/static:/app/static
     restart: unless-stopped
 
   ollama:
